@@ -93,8 +93,8 @@ set border lc 'gray90'
 set tics tc rgb 'gray90'
 set key tc rgb 'gray90'
 
-set y2label "VSZ (MB)" tc rgb 'gray90'
-set ylabel "RSS (MB)" tc rgb 'gray90'
+set ylabel "MB" tc rgb 'gray90'
+set y2label "MB" tc rgb 'gray90'
 
 set ytics nomirror
 set y2tics nomirror in
@@ -102,19 +102,20 @@ set y2tics nomirror in
 set yrange [0:*]
 set y2range [0:*]
 
-plot "#{log_path}" using 2 with lines axes x1y1 title "RSS (MB)", \
-     "#{log_path}" using 1 with lines axes x1y2 title "VSZ (MB)"
+plot "#{log_path}" using 1 with lines axes x1y1 title "Virtual", \
+     "#{log_path}" using 2 with lines axes x1y1 title "Resident", \
+     
      
 set output "#{cpu_png_path}"
 
-set ylabel "%CPU" tc rgb 'gray90'
-unset y2label
+set ylabel "% CPU" tc rgb 'gray90'
+set y2label "% CPU" tc rgb 'gray90'
 
 set ytics nomirror
 
 set yrange [0:*]
 
-plot "#{log_path}" using 3 with lines axes x1y2 title "%CPU"
+plot "#{log_path}" using 3 with lines axes x1y1 title "% CPU"
 EOD
   end
 end
