@@ -13,8 +13,6 @@ class Procmon
   def go
     write_gnuplot_script
     FileUtils.rm_f(log_path)
-    run("eog #{cpu_png_path}", background: true)
-    run("eog #{mem_png_path}", background: true)
 
     loop do
       a = measure
@@ -25,6 +23,7 @@ class Procmon
       #          "RSS: #{b.resident_set_mb.round(3)} MB  " +
       #          "TOTAL CPU: #{b.total_cpu_seconds.round(3)} sec  " +
       #          "% CPU: #{percent_cpu.round}"
+      rotate_log
       File.open(log_path, 'a') do |f|
         f.write([
                     b.virtual_memory_mb.round(3),
@@ -33,8 +32,31 @@ class Procmon
                 ].map(&:to_s).join(' ') + "\n")
       end
       run("gnuplot #{gnuplot_script_path}")
+      show_graphs
     end
   end
+
+  def show_graphs
+    unless @showing_graphs
+      @showing_graphs = true
+      run("eog #{cpu_png_path}", background: true)
+      run("eog #{mem_png_path}", background: true)
+    end
+  end
+
+  def rotate_log
+
+    if File.exists?(log_path) && line_count(log_path) >= num_x_points
+      tmp_path = "#{log_path}.tmp"
+      run("tail -#{num_x_points - 1} #{log_path} > #{tmp_path}")
+      FileUtils.move(tmp_path, log_path)
+      FileUtils.rm_f(tmp_path)
+    end
+  end
+
+    def line_count(path)
+      `cat #{path} | wc -l`.strip.to_i
+    end
 
   def measure
     vs = File.read("/proc/#{@pid}/stat").strip.split(/\s+/)
@@ -84,6 +106,10 @@ class Procmon
     path_prefix + suffix
   end
 
+  def num_x_points
+    1200
+  end
+
   def write_gnuplot_script
     File.write gnuplot_script_path, <<EOD
 set term png small size 2556,600 background rgb 'gray10'
@@ -99,8 +125,9 @@ set y2label "MB" tc rgb 'gray90'
 set ytics nomirror
 set y2tics nomirror in
 
-set yrange [0:*]
-set y2range [0:*]
+set xrange [0:#{num_x_points}]
+set yrange [*:*]
+set y2range [*:*]
 
 plot "#{log_path}" using 1 with lines axes x1y1 title "Virtual", \
      "#{log_path}" using 2 with lines axes x1y1 title "Resident", \
@@ -120,5 +147,5 @@ EOD
   end
 end
 
-pid = ARGV[0]
+  pid = ARGV[0]
 Procmon.new(pid).go
