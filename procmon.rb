@@ -13,18 +13,26 @@ class Procmon
   def go
     write_gnuplot_script
     FileUtils.rm_f(log_path)
-    # run("eog #{cpu_png_path}", background: true)
-    # run("eog #{mem_png_path}", background: true)
+    run("eog #{cpu_png_path}", background: true)
+    run("eog #{mem_png_path}", background: true)
 
-    while true
+    loop do
       a = measure
       sleep(@period)
       b = measure
       percent_cpu = ((b.total_cpu_seconds - a.total_cpu_seconds) / @period.to_f) * 100
-      puts "VMEM #{b.virtual_memory_mb.round(3)} MB  " +
-               "RSS: #{b.resident_set_mb.round(3)} MB  " +
-               "TOTAL CPU: #{b.total_cpu_seconds.round(3)} sec  " +
-               "% CPU: #{percent_cpu.round}"
+      # puts "VMEM #{b.virtual_memory_mb.round(3)} MB  " +
+      #          "RSS: #{b.resident_set_mb.round(3)} MB  " +
+      #          "TOTAL CPU: #{b.total_cpu_seconds.round(3)} sec  " +
+      #          "% CPU: #{percent_cpu.round}"
+      File.open(log_path, 'a') do |f|
+        f.write([
+                    b.virtual_memory_mb.round(3),
+                    b.resident_set_mb.round(3),
+                    percent_cpu.round
+                ].map(&:to_s).join(' ') + "\n")
+      end
+      run("gnuplot #{gnuplot_script_path}")
     end
   end
 
@@ -79,14 +87,14 @@ class Procmon
   def write_gnuplot_script
     File.write gnuplot_script_path, <<EOD
 set term png small size 2556,600 background rgb 'gray10'
-set output "/tmp/procmon-mem-graph.png"
+set output "#{mem_png_path}"
 
 set border lc 'gray90'
 set tics tc rgb 'gray90'
 set key tc rgb 'gray90'
 
-set ylabel "%MEM" tc rgb 'gray90'
-set y2label "VSZ" tc rgb 'gray90'
+set y2label "VSZ (MB)" tc rgb 'gray90'
+set ylabel "RSS (MB)" tc rgb 'gray90'
 
 set ytics nomirror
 set y2tics nomirror in
@@ -94,10 +102,10 @@ set y2tics nomirror in
 set yrange [0:*]
 set y2range [0:*]
 
-plot "/tmp/procmon.log" using 3 with lines axes x1y2 title "VSZ", \
-     "/tmp/procmon.log" using 2 with lines axes x1y1 title "%MEM"
+plot "#{log_path}" using 2 with lines axes x1y1 title "RSS (MB)", \
+     "#{log_path}" using 1 with lines axes x1y2 title "VSZ (MB)"
      
-set output "/tmp/procmon-cpu-graph.png"
+set output "#{cpu_png_path}"
 
 set ylabel "%CPU" tc rgb 'gray90'
 unset y2label
@@ -106,7 +114,7 @@ set ytics nomirror
 
 set yrange [0:*]
 
-plot "/tmp/procmon.log" using 4 with lines axes x1y2 title "%CPU"
+plot "#{log_path}" using 3 with lines axes x1y2 title "%CPU"
 EOD
   end
 end
