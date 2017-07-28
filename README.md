@@ -1,1 +1,5 @@
 # procmon
+
+```
+procmon <pid>
+```
