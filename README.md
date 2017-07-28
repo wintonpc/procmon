@@ -1,5 +1,7 @@
 # procmon
 
+Monitor CPU usage and memory consumption on a per-process basis.
+
 ## Installation
 
 Clone and ensure `procmon.rb` is in your `PATH`.
