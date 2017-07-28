@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'fileutils'
+require 'mkmf'
 
 class Procmon
   def initialize(pid)
@@ -8,9 +9,13 @@ class Procmon
     @period = 1
   end
 
+  PLOT_WIDTH_PX = 2556
+  PLOT_HEIGHT_PX = 600
+
   Stats = Struct.new(:virtual_memory_mb, :resident_set_mb, :total_cpu_seconds)
 
   def go
+    ensure_dependencies_installed
     write_gnuplot_script
     FileUtils.rm_f(log_path)
 
@@ -36,6 +41,31 @@ class Procmon
     end
   end
 
+  private
+
+  def ensure_dependencies_installed
+    unless find_executable('gnuplot') && find_executable('eog')
+      cmd = 'sudo apt-get install gnuplot-qt eog'
+      abort unless confirm("Dependencies missing. Run `#{cmd}` ? [y/N] ") do
+        run(cmd)
+      end
+    end
+  end
+
+  def confirm(action)
+    response = prompt(action)
+    unless response.downcase == 'y'
+      return false
+    end
+    yield
+    true
+  end
+
+  def prompt(*args)
+    print(*args)
+    $stdin.gets.strip
+  end
+
   def show_graphs
     unless @showing_graphs
       @showing_graphs = true
@@ -54,9 +84,9 @@ class Procmon
     end
   end
 
-    def line_count(path)
-      `cat #{path} | wc -l`.strip.to_i
-    end
+  def line_count(path)
+    `cat #{path} | wc -l`.strip.to_i
+  end
 
   def measure
     vs = File.read("/proc/#{@pid}/stat").strip.split(/\s+/)
@@ -107,12 +137,12 @@ class Procmon
   end
 
   def num_x_points
-    1200
+    (PLOT_WIDTH_PX / 2.0).round
   end
 
   def write_gnuplot_script
     File.write gnuplot_script_path, <<EOD
-set term png small size 2556,600 background rgb 'gray10'
+set term png small size #{PLOT_WIDTH_PX},#{PLOT_HEIGHT_PX} background rgb 'gray10'
 set output "#{mem_png_path}"
 
 set border lc 'gray90'
@@ -147,5 +177,5 @@ EOD
   end
 end
 
-  pid = ARGV[0]
+pid = ARGV[0]
 Procmon.new(pid).go
