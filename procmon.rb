@@ -177,6 +177,6 @@ EOD
   end
 end
 
-ARGV.size == 1 or abort 'Usage: procmon <pid>'
+ARGV.size == 1 or abort 'Usage: procmon.rb <pid>'
 pid = ARGV[0]
 Procmon.new(pid).go

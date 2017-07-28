@@ -1,7 +1,14 @@
 # procmon
 
+## Installation
+
+Clone and ensure `procmon.rb` is in your `PATH`.
+
 ## Usage
 
 ```
-procmon <pid>
+procmon.rb <pid>
 ```
+
+It may prompt you to install `gnuplot` and/or `eog`, which is an image viewer that nicely
+handles updating image files. 
